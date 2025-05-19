@@ -20,3 +20,33 @@ Dengan demikian, program ini memperlihatkan bagaimana eksekusi asynchronous beke
 
 ---
 
+### 1.3. Multiple Spawn and removing drop
+
+**Dengan drop(spawner) :**
+![image](https://github.com/user-attachments/assets/a5d48e77-ff7c-4a53-af36-228fed97d700)
+
+**Tanpa drop(spawner) :**
+![image](https://github.com/user-attachments/assets/57c68935-ba93-48e2-a735-1bb2b18bd0c8)
+
+Pada eksperimen ini, program dimodifikasi dengan menambahkan tiga buah *task* yang masing-masing mencetak pesan sebelum dan sesudah menunggu selama dua detik menggunakan `TimerFuture`. Ketika program dijalankan **dengan `drop(spawner)`**, urutan output di konsol adalah sebagai berikut:
+
+```
+Alby's Komputer: hey hey  
+Alby's Komputer: howdy!  
+Alby's Komputer: howdy2!  
+Alby's Komputer: howdy3!  
+Alby's Komputer: done!  
+Alby's Komputer: done2!  
+Alby's Komputer: done3!
+```
+
+Urutan ini menjelaskan bahwa semua tugas berhasil dijalankan secara bersamaan (asinkron), masing-masing mencetak "howdy" di awal, kemudian menunggu selama dua detik, dan mencetak "done" setelah timer selesai. Karena `drop(spawner)` dipanggil, executor tahu bahwa tidak akan ada tugas baru yang dikirim, sehingga ia akan berhenti dengan benar setelah seluruh queue task kosong.
+
+Sebaliknya, saat program dijalankan **tanpa `drop(spawner)`**, output awal masih sama, namun setelah seluruh tugas selesai, program **tidak pernah berhenti** dan tetap berjalan tanpa akhir. Ini karena channel sinkron (`sync_channel`) yang digunakan antara executor dan spawner tidak pernah ditutup secara eksplisit. Tanpa `drop(spawner)`, channel dianggap masih terbuka, sehingga executor terus menunggu kemungkinan ada tugas baru masuk, padahal tidak ada lagi tugas yang akan dikirim. Hal ini menyebabkan program *hang* atau tidak selesai secara otomatis.
+
+Dengan demikian, `drop(spawner)` berperan penting sebagai sinyal bagi executor bahwa tidak ada lagi tugas baru yang akan dikirim, dan bahwa ia boleh menghentikan prosesnya ketika task queue habis. Ini merupakan bagian penting dari manajemen *lifecycle* pada sistem asynchronous sederhana di Rust.
+
+---
+
+
+
